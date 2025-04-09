@@ -1,0 +1,38 @@
+Starting email collection. Found 16 emails from Lynn Gadue using selector: div[data-convid]
+
+Email 1:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Re: FIA IMO commission levels 
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+================================================================================
+
+Email 2:
+Subject: No Subject
+From: Joe Bentivoglio <jbent
+Date: Unknown Date
+----------------------------------------
+Re: State Availability & Rules Clarifications
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+================================================================================
+
+Email 14:
+Subject: No Subject
+From: Tom Olds <tolds@3clife.info> Date: Tuesday, February 4, 2025 at 8:02 PM To: Donna Curry <dcurry@3clife.info>, Matthew Zidow
+Date: Tuesday, February 4, 2025 at 8:02 PM To: Donna Curry <dcurry@3clife.info>, Matthew Zidow
+----------------------------------------
+Re: Agent Onboarding Packet Working Session
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+================================================================================
+

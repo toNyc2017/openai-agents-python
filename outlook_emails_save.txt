@@ -1,0 +1,358 @@
+Starting email collection. Found 15 emails from Lynn Gadue using selector: div[data-convid]
+
+Email 1:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Initial Testing - e-App Funding Page
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+3 others​​​
+Cc:​+5 others​​​​​
+Fri 3/14/2025 6:08 PM
+
+Good afternoon,
+
+ 
+
+At Joe’s request, I spent some time today primarily on the Funding pages of the e-App.
+
+ 
+
+I’ve recorded the initial 17 defects I found on the “Defects Lynn Found” tab on this spreadsheet:  e-App Open Items.xlsx. I don’t feel like I can test too much further on this page until these defects are addressed. Of note, I’m not seeing that any of integrations that are working in QA on any page on or before the Funding pages (including 1035YP) in QA except for the “address lookup.”
+
+ 
+
+(I didn’t add them into iLife’s document because I didn’t want to take the time to create a Google ID and such – I can add them Monday if you’d like).
+
+ 
+
+ 
+
+Let me know if you’d like to clarify or demonstrate my findings.
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+Lynn Gadue, FLMI, PMP
+
+Mobile: 860-212-3992 | US Eastern Time
+
+ 
+
+Please use my new email address beginning March 15, 2025 (lgadue@ceresInsurance.com) 
+
+ 
+
+
+Reply
+
+Reply all
+
+Forward
+
+================================================================================
+
+Email 2:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Please Use This Link To e-App Open Items
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+6 others​​​​​​
+Cc:​+4 others​​​​
+Fri 3/14/2025 4:50 PM
+Thank you!
+Got it, thanks!
+No problem, thank you!
+
+Hi team,
+
+ 
+
+I’m sorry – there was a little confusion on the version of the spreadsheet that we should use. The correct link follows.
+
+ 
+
+ e-App Open Items.xlsx
+
+ 
+
+ 
+
+Thank you,
+
+ 
+
+Lynn
+
+ 
+
+Lynn Gadue, FLMI, PMP
+
+Mobile: 860-212-3992 | US Eastern Time
+
+ 
+
+Please use my new email address beginning March 15, 2025 (lgadue@ceresInsurance.com) 
+
+ 
+
+
+Reply
+
+Reply all
+
+Forward
+
+================================================================================
+
+Email 3:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Re: FIA IMO commission levels 
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+7 others​​​​​​​
+Wed 3/26/2025 9:03 AM
+
+HI Andrei,
+
+ 
+
+It’s very, very important that we have the exact same number and exact same names of commission levels between the MYGA and FIA (i.e. 15 levels from IMO through LOA). The tiers may and rates/percentages will vary of course, but the levels themselves must remain the same. If they do not, then we’ll need a separate contract, transmittal and contracting workflow for this product to collect the commission levels plus we’ll need to build additional complexity in commission processing and customer servicing. In my opinion, this is not desirable and is not necessary.
+
+ 
+
+If there is anything that we should consider proprietary about our products it’s our commission rates. Further, they are not published widely to protect the relationships between parties within their own hierarchy. It’s somewhat similar to a customer service rep not being exposed to Sarah’s, Joe’s and Deanna’s compensation or the finer details of how Ceres makes money; besides industry generalities, they only know explicit details about their own and the comp of anyone that works for / under them. So no, you will definitely, absolutely NOT find commission rates in the public domain besides Street Level and LOA (always 0%). In fact, if the commission schedule is part of the agent contracting package, it should only include the rates for the level in which the agent/agency is contracted, not the whole schedule. Setting commission rates is a key area where we should be receiving market intelligence from IDG (assuming they’re a contracted vendor of ours and therefore obligated to ensure they provide us with objective advice).
+
+ 
+
+Since I’m unclear from the email below whether the group already understands this, I thought I’d share these comments. If this information is already obvious and/or understood, please pardon me for the time it took you to read this! 😊
+
+ 
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+ 
+
+From: Andrei Titioura <atitioura@3clife.info>
+Date: Wednesday, March 26, 2025 at 6:12 AM
+To: Tom Olds <tolds@3clife.info>, Donna Curry <dcurry@3clife.info>, Joe Bentivoglio <jbentivoglio@ceresinsurance.com>, Brendan Peters <bpeters@ceresinsurance.com>, Nerone Brito Jr <nbrito@3clife.info>, Sarah Litvinchuk <slitvinchuk@3clife.info>, Lynn Gadue <lgadue@3clife.info>
+Subject: Re: FIA IMO commission levels
+
+Alright, I will do. This ask is for a range for competitive study of our FIA product to assess if our commission levels are in line with the markets. I see only street level commissions from our competitors, so wondered about IMO levels.
+
+ 
+
+From: Tom Olds <tolds@3clife.info>
+Date: Tuesday, March 25, 2025 at 10:49 PM
+To: Andrei Titioura <atitioura@3clife.info>, Donna Curry <dcurry@3clife.info>, Joe Bentivoglio <jbentivoglio@ceresinsurance.com>, Brendan Peters <bpeters@ceresinsurance.com>, Nerone Brito Jr <nbrito@3clife.info>, Sarah Litvinchuk <slitvinchuk@3clife.info>, Lynn Gadue <lgadue@3clife.info>
+Subject: Re: FIA IMO commission levels
+
+Recall we have Kristen Hart joining us on April 7th, direct from an IMO in the IDG family. 
+
+We will certainly want to run our hypotheses by her…
+
+ 
+
+Get Outlook for iOS
+
+From: Andrei Titioura <atitioura@3clife.info>
+Sent: Tuesday, March 25, 2025 8:17:48 PM
+To: Donna Curry <dcurry@3clife.info>; Joe Bentivoglio <jbentivoglio@ceresinsurance.com>; Brendan Peters <bpeters@ceresinsurance.com>; Tom Olds <tolds@3clife.info>; Nerone Brito Jr <nbrito@3clife.info>; Sarah Litvinchuk <slitvinchuk@3clife.info>; Lynn Gadue <lgadue@3clife.info>
+Subject: FIA IMO commission levels
+
+ 
+
+Good Evening,
+
+Anyone with the knowledge of IMO commissions level, what is the usual range of IMO  levels for FIA products?
+
+Thanks, Andrei.
+
+
+Reply
+
+Reply all
+
+Forward
+
+================================================================================
+
+Email 4:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Initial Testing - e-App Funding Page
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+3 others​​​
+Cc:​+5 others​​​​​
+Fri 3/14/2025 6:08 PM
+
+Good afternoon,
+
+ 
+
+At Joe’s request, I spent some time today primarily on the Funding pages of the e-App.
+
+ 
+
+I’ve recorded the initial 17 defects I found on the “Defects Lynn Found” tab on this spreadsheet:  e-App Open Items.xlsx. I don’t feel like I can test too much further on this page until these defects are addressed. Of note, I’m not seeing that any of integrations that are working in QA on any page on or before the Funding pages (including 1035YP) in QA except for the “address lookup.”
+
+ 
+
+(I didn’t add them into iLife’s document because I didn’t want to take the time to create a Google ID and such – I can add them Monday if you’d like).
+
+ 
+
+ 
+
+Let me know if you’d like to clarify or demonstrate my findings.
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+Lynn Gadue, FLMI, PMP
+
+Mobile: 860-212-3992 | US Eastern Time
+
+ 
+
+Please use my new email address beginning March 15, 2025 (lgadue@ceresInsurance.com) 
+
+ 
+
+
+Reply
+
+Reply all
+
+Forward
+
+================================================================================
+
+Email 5:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Please Use This Link To e-App Open Items
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+6 others​​​​​​
+Cc:​+4 others​​​​
+Fri 3/14/2025 4:50 PM
+Thank you!
+Got it, thanks!
+No problem, thank you!
+
+Hi team,
+
+ 
+
+I’m sorry – there was a little confusion on the version of the spreadsheet that we should use. The correct link follows.
+
+ 
+
+ e-App Open Items.xlsx
+
+ 
+
+ 
+
+Thank you,
+
+ 
+
+Lynn
+
+ 
+
+Lynn Gadue, FLMI, PMP
+
+Mobile: 860-212-3992 | US Eastern Time
+
+ 
+
+Please use my new email address beginning March 15, 2025 (lgadue@ceresInsurance.com) 
+
+ 
+
+
+Reply
+
+Reply all
+
+Forward
+
+================================================================================
+

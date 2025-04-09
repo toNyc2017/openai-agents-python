@@ -1,0 +1,12 @@
+Starting email collection. Found 15 emails from Lynn Gadue using selector: div[data-convid]
+
+Email 1:
+Subject: No Subject
+From: Unknown Sender
+Date: Unknown Date
+----------------------------------------
+Re: FIA IMO commission levels 
+Summary by Copilot
+
+================================================================================
+

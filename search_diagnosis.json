@@ -1,0 +1,20 @@
+{
+  "url": "https://outlook.office.com/mail/",
+  "searchBoxes": {
+    "total": 17,
+    "searchInputs": 0,
+    "ariaSearch": 1,
+    "searchPlaceholder": 0
+  },
+  "emailList": {
+    "rows": 0,
+    "listItems": 0,
+    "emailItems": 11,
+    "visibleEmails": 6
+  },
+  "searchResults": {
+    "visible": 0,
+    "total": 0
+  },
+  "currentSearchValue": "From:Lynn Gadue"
+}

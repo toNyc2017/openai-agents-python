@@ -135,10 +135,32 @@ dmypy.json
 cython_debug/
 
 # PyCharm
-#.idea/
+.idea/
 
 # Ruff stuff:
 .ruff_cache/
 
 # PyPI configuration file
 .pypirc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+screenshots/
+emails/
+outlook_emails.txt
+outlook_email_small.txt
+credentials.json
+secrets.json
+
+# System files
+Thumbs.db

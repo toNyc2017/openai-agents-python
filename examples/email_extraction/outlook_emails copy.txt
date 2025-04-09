@@ -1,0 +1,270 @@
+Starting email collection...
+
+=== FIRST EMAIL ===
+Re: FIA IMO commission levels 
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+7 others​​​​​​​
+Wed 3/26/2025 9:03 AM
+
+HI Andrei,
+
+ 
+
+It’s very, very important that we have the exact same number and exact same names of commission levels between the MYGA and FIA (i.e. 15 levels from IMO through LOA). The tiers may and rates/percentages will vary of course, but the levels themselves must remain the same. If they do not, then we’ll need a separate contract, transmittal and contracting workflow for this product to collect the commission levels plus we’ll need to build additional complexity in commission processing and customer servicing. In my opinion, this is not desirable and is not necessary.
+
+ 
+
+If there is anything that we should consider proprietary about our products it’s our commission rates. Further, they are not published widely to protect the relationships between parties within their own hierarchy. It’s somewhat similar to a customer service rep not being exposed to Sarah’s, Joe’s and Deanna’s compensation or the finer details of how Ceres makes money; besides industry generalities, they only know explicit details about their own and the comp of anyone that works for / under them. So no, you will definitely, absolutely NOT find commission rates in the public domain besides Street Level and LOA (always 0%). In fact, if the commission schedule is part of the agent contracting package, it should only include the rates for the level in which the agent/agency is contracted, not the whole schedule. Setting commission rates is a key area where we should be receiving market intelligence from IDG (assuming they’re a contracted vendor of ours and therefore obligated to ensure they provide us with objective advice).
+
+ 
+
+Since I’m unclear from the email below whether the group already understands this, I thought I’d share these comments. If this information is already obvious and/or understood, please pardon me for the time it took you to read this! 😊
+
+ 
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+ 
+
+From: Andrei Titioura <atitioura@3clife.info>
+Date: Wednesday, March 26, 2025 at 6:12 AM
+To: Tom Olds <tolds@3clife.info>, Donna Curry <dcurry@3clife.info>, Joe Bentivoglio <jbentivoglio@ceresinsurance.com>, Brendan Peters <bpeters@ceresinsurance.com>, Nerone Brito Jr <nbrito@3clife.info>, Sarah Litvinchuk <slitvinchuk@3clife.info>, Lynn Gadue <lgadue@3clife.info>
+Subject: Re: FIA IMO commission levels
+
+Alright, I will do. This ask is for a range for competitive study of our FIA product to assess if our commission levels are in line with the markets. I see only street level commissions from our competitors, so wondered about IMO levels.
+
+ 
+
+From: Tom Olds <tolds@3clife.info>
+Date: Tuesday, March 25, 2025 at 10:49 PM
+To: Andrei Titioura <atitioura@3clife.info>, Donna Curry <dcurry@3clife.info>, Joe Bentivoglio <jbentivoglio@ceresinsurance.com>, Brendan Peters <bpeters@ceresinsurance.com>, Nerone Brito Jr <nbrito@3clife.info>, Sarah Litvinchuk <slitvinchuk@3clife.info>, Lynn Gadue <lgadue@3clife.info>
+Subject: Re: FIA IMO commission levels
+
+Recall we have Kristen Hart joining us on April 7th, direct from an IMO in the IDG family. 
+
+We will certainly want to run our hypotheses by her…
+
+ 
+
+Get Outlook for iOS
+
+From: Andrei Titioura <atitioura@3clife.info>
+Sent: Tuesday, March 25, 2025 8:17:48 PM
+To: Donna Curry <dcurry@3clife.info>; Joe Bentivoglio <jbentivoglio@ceresinsurance.com>; Brendan Peters <bpeters@ceresinsurance.com>; Tom Olds <tolds@3clife.info>; Nerone Brito Jr <nbrito@3clife.info>; Sarah Litvinchuk <slitvinchuk@3clife.info>; Lynn Gadue <lgadue@3clife.info>
+Subject: FIA IMO commission levels
+
+ 
+
+Good Evening,
+
+Anyone with the knowledge of IMO commissions level, what is the usual range of IMO  levels for FIA products?
+
+Thanks, Andrei.
+
+
+Reply
+
+Reply all
+
+Forward
+
+=== SECOND EMAIL ===
+Re: State Availability & Rules Clarifications
+
+
+General\All Employees (unrestricted)
+Summary by Copilot
+
+LG
+
+Lynn Gadue
+
+
+
+To:​+6 others​​​​​​
+Tue 2/18/2025 8:53 AM
+Sounds good to me.
+That would be great, thanks!
+Please do. Thanks.
+
+I concur with your thoughts below Joe (for what that is worth!).
+
+ 
+
+Unless someone else has expertise with the trust/corporation governance, I’d be happy to send Laura a note to ask (with you on copy of course).
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+ 
+
+From: Joe Bentivoglio <jbentivoglio@3clife.info>
+Date: Monday, February 17, 2025 at 2:38 PM
+To: Lynn Gadue <lgadue@3clife.info>, Sarah Litvinchuk <slitvinchuk@3clife.info>, Nerone Brito Jr <nbrito@3clife.info>, Tom Olds <tolds@3clife.info>, Matthew Zidow <mzidow@3clife.info>, Donna Curry <dcurry@3clife.info>
+Subject: Re: State Availability & Rules Clarifications
+
+Hi Lynn,
+
+ 
+
+My thoughts are in RED below.  I am copying Sarah as I think you intended to include her in the original email.
+
+ 
+
+If others think my positions are not aligned with any prior conversations internally or with AE, please let me know.
+
+ 
+
+Thanks
+
+ 
+
+Joe
+
+ 
+
+Joe Bentivoglio
+
+jbentivoglio@3clife.info
+
+(317) 517-9330
+
+ 
+
+From: Lynn Gadue <lgadue@3clife.info>
+Date: Thursday, February 13, 2025 at 7:44 PM
+To: Joe Bentivoglio <jbentivoglio@3clife.info>
+Subject: State Availability & Rules Clarifications
+
+Hi Joe and Sarah,
+
+ 
+
+At present, we do NOT have any rules besides the Cross Border Restriction rules to govern the owner from residing or signing in any state – but we can add them if needed.
+
+ 
+
+I’m clarifying our requirements regarding states in general and our e-App rules – I could use your help (and/or we can ask for Laura’s / Milliman’s opinion if needed).
+
+ 
+
+The Application Jurisdiction (aka Issue State) will be limited to the states in which both Ceres Life is approved to do business and the MYGA is approved for sale by Ceres Life. Yes
+
+ 
+
+These are my questions for the non “Cross Border Restricted” states (where the Application Jurisdiction is different from the states noted below).
+
+ 
+
+·         Owner’s Residence
+
+o    May the Owner reside in a state in which Ceres Life is not approved to do business under that name?  No, b/c the application must be solicited and delivered in a state where the product is available.
+
+ 
+
+o    May the Owner reside in a state in which the MYGA is not approved for sale? No
+
+ 
+
+o    Do these rules also pertain to the Governing State of a Trust? The State of Incorporation of an entity? Unclear, we will need to ask Milliman.
+
+ 
+
+·         Owner’s “Signed At State”
+
+ 
+
+o    May the Owner sign the application forms in a state in which Ceres Life is not approved to do business under that name? No, b/c the application must be solicited and delivered in a state where the product is available.
+
+ 
+
+o    May the Owner sign the application forms in a state in which the MYGA is not approved for sale? No
+
+ 
+
+o    Any variations when the Owner is non-natural? For example, if the trustee is located in a state that is not the Governing State controlling the trust? Unclear, will need to ask Milliman.
+
+ 
+
+ 
+
+Background:
+
+ 
+
+Our “Cross Border Restricted” rules indicate that, in these states (once Ceres & the MYGA are approved) the Issue State, the Owner’s Residence State (and State of Incorporation or Governing State for entity owned policies) and the state in which the Owner signs the application must all be the same on the application:  AR, MA, MS, UT, WA and WI.  (In addition, if / when Ceres & the MYGA are approved in these states, they’ll be added to this list: ID, MN, NY).
+
+ 
+
+As background, in iLife e-App, we collect information in this order:
+
+The first pieces of information we collect is the application Jurisdiction (aka Issue State) and product.
+
+We are limiting the available application Jurisdictions / Issue States to the list of states in which a.) Ceres Life is approved to do business and b.) the MYGA is approved for sale by Ceres Life.
+
+ 
+
+Then, we collect [the Owner’s residence state if the owner is a person, otherwise the State of Incorporation/Governing State if an entity].
+
+ 
+
+Last, we collect the City and State in which the Owner (or the person signing on behalf of the owner – POA, Guardian, Trustee or entity contact) will sign the application package.
+
+Of note, this is entered by the agent/user of iLife e-App rather than the signer. Therefore, we can edit the information before the signature process begins.
+
+ 
+
+My questions relate to rules pertaining to #2 and #3 above.
+
+ 
+
+As I understand it, we are in the process of filing the MYGA (under ManhattanLife) and submitting paperwork to do business under the name of Ceres Life. Once Ceres Life is approved to do business in a state, the MYGA will be transferred to Ceres and that reviewed and approved. At that time, we can sell in that state. Approval will be received over time.
+
+ 
+
+The states in which we will not be submitting paperwork in the near-term (the process is more extensive, or we do not intend to sell in a state) include: California, Idaho, Maine, Minnesota, New Jersey, New York (and Puerto Rico, which is also a Compact State).
+
+ 
+
+ 
+
+Please help!
+
+ 
+
+ 
+
+Lynn
+
+ 
+
+ 
+
+
+Reply
+
+Reply all
+
+Forward
+

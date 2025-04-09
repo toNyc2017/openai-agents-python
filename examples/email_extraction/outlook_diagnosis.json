@@ -1,0 +1,25 @@
+{
+  "title": "Mail - Tom Olds - Outlook",
+  "url": "https://outlook.office.com/mail/id/AAkALgAAAAAAHYQDEapmEc2byACqAC%2FEWg0AocAVoQksDUebbhMVxVfrlQAAn4QbXQAA",
+  "elements": {
+    "rows": 0,
+    "links": 4,
+    "buttons": 124,
+    "inputs": 17
+  },
+  "textContent": {
+    "lynnGadue": 202
+  },
+  "aria": {
+    "email": 1,
+    "inbox": 0,
+    "message": 34
+  },
+  "classes": {
+    "ZtMcN": 0,
+    "hcptT": 0,
+    "customScrollBar": 6,
+    "ms-List-cell": 0,
+    "messageBody": 0
+  }
+}

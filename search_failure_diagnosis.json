@@ -1,0 +1,7 @@
+{
+  "url": "https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3a%2f%2foutlook.office.com%2fowa%2f&resource=00000002-0000-0ff1-ce00-000000000000&response_mode=form_post&response_type=code+id_token&scope=openid&msafed=1&msaredir=1&client-request-id=5e1fe470-fe4d-f637-1c52-45ffdd863b4b&protectedtoken=true&claims=%7b%22id_token%22%3a%7b%22xms_cc%22%3a%7b%22values%22%3a%5b%22CP1%22%5d%7d%7d%7d&nonce=638797265186733787.d810f1ee-f2a3-48ad-838e-c60f90face3a&state=Dcu7DoIwFIDhou_iVulF2tOBOJAYYnBBEw1bL6eJxAYCBOPby_D9258RQvab3SZjW4hWErTRQhUclJZSgz4G4CxyRBqFlfQENlCQgNQrFg2L1qO02fY2-fC1-Xle7IIlP0wY3hP65TGUtm6Zr2-q-Zk1vNrZCTM1yaQuffruXvROsNU9L6OrzOjSdcUK_g",
+  "inputs": 14,
+  "searchInputs": 0,
+  "ariaSearch": 0,
+  "lynnEmails": 0
+}
