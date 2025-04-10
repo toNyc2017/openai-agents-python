@@ -675,7 +675,7 @@ async def minimal_outlook_scroll(ctx: RunContextWrapper[ExtractEmailContext], n_
 # =============================================================================
 @function_tool(
     name_override="collect_emails",
-    description_override="Collect the first 2 emails from Lynn Gadue and save their content to outlook_emails.txt"
+    description_override="Collect the first 3 emails from Lynn Gadue and save their content to outlook_emails.txt"
 )
 async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
@@ -686,6 +686,7 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     
     # Verify we're seeing emails from Lynn Gadue
     sender_count = await page.locator("text=Lynn Gadue").count()
+    print(f"Found {sender_count} emails from Lynn Gadue")
     if sender_count == 0:
         return "No emails from Lynn Gadue found. Please run search_in_outlook first."
     
@@ -697,75 +698,80 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
         # Wait for email list to load
         await page.wait_for_selector("div[data-convid]", timeout=10000)
         
-        # Process first email
-        print("Processing first email...")
-        first_email = page.locator("div[data-convid]").first
-        await first_email.click()
-        await page.wait_for_timeout(3000)
+        # Process exactly 3 emails
+        for i in range(3):
+            print(f"\nProcessing email {i+1} of 3...")
+            
+            # Scroll to make sure the email is visible
+            await page.evaluate(f"""() => {{
+                const emails = document.querySelectorAll('div[data-convid]');
+                if (emails[{i}]) {{
+                    emails[{i}].scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                }}
+            }}""")
+            await page.wait_for_timeout(2000)
+            
+            # Get and click the email
+            email = page.locator("div[data-convid]").nth(i)
+            await email.click()
+            await page.wait_for_timeout(3000)
+            
+            # Wait for email content to load
+            await page.wait_for_selector("div[role='document']", timeout=5000)
+            
+            # Extract email content
+            content = await page.evaluate("""() => {
+                const mainContent = document.querySelector('[role="main"]');
+                if (mainContent) return mainContent.innerText;
+                const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
+                if (messageBody) return messageBody.innerText;
+                const readingPane = document.querySelector('.readingPane, .reading-pane');
+                if (readingPane) return readingPane.innerText;
+                return document.body.innerText;
+            }""")
+            
+            # Write email content to file
+            with open("outlook_emails.txt", "a", encoding="utf-8") as f:
+                f.write(f"=== EMAIL {i+1} ===\n")
+                f.write(content)
+                f.write("\n\n")
+            
+            # Take a screenshot of the email
+            await page.screenshot(path=f"screenshots/email_{i+1}.png")
+            
+            # Go back to inbox with retry logic
+            for attempt in range(3):
+                try:
+                    await page.go_back()
+                    await page.wait_for_timeout(2000)
+                    # Verify we're back in the inbox
+                    await page.wait_for_selector("div[data-convid]", timeout=5000)
+                    break
+                except Exception as e:
+                    if attempt == 2:  # Last attempt
+                        print(f"Warning: Could not return to inbox after {attempt+1} attempts")
+                        # Try direct navigation as last resort
+                        await page.goto("https://outlook.office.com/mail/inbox")
+                        await page.wait_for_timeout(3000)
+                    else:
+                        print(f"Retrying inbox navigation (attempt {attempt+1})")
+                        await page.wait_for_timeout(1000)
+            
+            print(f"Successfully processed email {i+1}")
         
-        # Extract first email content
-        content1 = await page.evaluate("""() => {
-            const mainContent = document.querySelector('[role="main"]');
-            if (mainContent) return mainContent.innerText;
-            const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
-            if (messageBody) return messageBody.innerText;
-            const readingPane = document.querySelector('.readingPane, .reading-pane');
-            if (readingPane) return readingPane.innerText;
-            return document.body.innerText;
-        }""")
-        
-        with open("outlook_emails.txt", "a", encoding="utf-8") as f:
-            f.write("=== FIRST EMAIL ===\n")
-            f.write(content1)
-            f.write("\n\n")
-        
-        # Take a screenshot of the first email
-        await page.screenshot(path="screenshots/email_1.png")
-        
-        # Go back to inbox
-        await page.go_back()
-        await page.wait_for_timeout(2000)
-        
-        # Process second email
-        print("Processing second email...")
-        second_email = page.locator("div[data-convid]").nth(1)
-        await second_email.click()
-        await page.wait_for_timeout(3000)
-        
-        # Extract second email content
-        content2 = await page.evaluate("""() => {
-            const mainContent = document.querySelector('[role="main"]');
-            if (mainContent) return mainContent.innerText;
-            const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
-            if (messageBody) return messageBody.innerText;
-            const readingPane = document.querySelector('.readingPane, .reading-pane');
-            if (readingPane) return readingPane.innerText;
-            return document.body.innerText;
-        }""")
-        
-        with open("outlook_emails.txt", "a", encoding="utf-8") as f:
-            f.write("=== SECOND EMAIL ===\n")
-            f.write(content2)
-            f.write("\n\n")
-        
-        # Take a screenshot of the second email
-        await page.screenshot(path="screenshots/email_2.png")
-        
-        print("Both emails saved to outlook_emails.txt")
+        print(f"\nCompleted processing 3 emails")
         
         # Log successful email collection
         log_success("collect_emails", {
-            "total_emails_collected": 2,
-            "emails": [
-                {"email_number": 1, "content_length": len(content1), "screenshot": "email_1.png"},
-                {"email_number": 2, "content_length": len(content2), "screenshot": "email_2.png"}
-            ]
+            "total_emails_collected": 3,
+            "screenshots": ["email_1.png", "email_2.png", "email_3.png"]
         })
         
-        return "Email collection completed. Check outlook_emails.txt for the results."
+        return "Email collection completed. Successfully collected 3 emails. Check outlook_emails.txt for the results."
         
     except Exception as e:
         print(f"Failed to process emails: {str(e)}")
+        await page.screenshot(path="screenshots/collection_error.png")
         return f"Error collecting emails: {str(e)}"
 
 @function_tool(
