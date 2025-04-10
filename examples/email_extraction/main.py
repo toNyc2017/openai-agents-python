@@ -675,101 +675,98 @@ async def minimal_outlook_scroll(ctx: RunContextWrapper[ExtractEmailContext], n_
 # =============================================================================
 @function_tool(
     name_override="collect_emails",
-    description_override="Iterate over emails from search results with improved reliability and filter maintenance."
+    description_override="Collect the first 2 emails from Lynn Gadue and save their content to outlook_emails.txt"
 )
-async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext], n_emails: int) -> str:
+async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
     page = computer_instance.page
     
     # Take a screenshot before starting
-    await page.screenshot(path="screenshots/before_collection.png")
+    await page.screenshot(path="screenshots/before_collect.png")
     
-    # First verify we're still in the search results
+    # Verify we're seeing emails from Lynn Gadue
+    sender_count = await page.locator("text=Lynn Gadue").count()
+    if sender_count == 0:
+        return "No emails from Lynn Gadue found. Please run search_in_outlook first."
+    
+    # Initialize output file with a starting message
+    with open("outlook_emails.txt", "w", encoding="utf-8") as f:
+        f.write("=== Email Collection Started ===\n\n")
+    
     try:
-        # Check if we see Lynn Gadue emails
-        sender_count = await page.locator("text=Lynn Gadue").count()
-        if sender_count == 0:
-            # If no Lynn Gadue emails found, try to reapply the search
-            search_box = page.locator("input[aria-label*='Search']")
-            await search_box.fill("From:Lynn Gadue")
-            await page.keyboard.press("Enter")
-            await page.wait_for_timeout(5000)
-            sender_count = await page.locator("text=Lynn Gadue").count()
-    except:
-        # If we can't verify the search, try to reapply it
-        await page.goto("https://outlook.office.com/mail/")
-        await page.wait_for_timeout(1000)
-        search_box = page.locator("input[aria-label*='Search']")
-        await search_box.fill("From:Lynn Gadue")
-        await page.keyboard.press("Enter")
-        await page.wait_for_timeout(5000)
-    
-    # Create output file
-    output_path = "outlook_emails.txt"
-    processed_count = 0
-    
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("Starting email collection...\n\n")
+        # Wait for email list to load
+        await page.wait_for_selector("div[data-convid]", timeout=10000)
         
         # Process first email
         print("Processing first email...")
-        try:
-            # Wait for email list to load
-            await page.wait_for_selector("div[data-convid]", timeout=10000)
-            
-            # Get and click first email
-            first_email = page.locator("div[data-convid]").first
-            await first_email.click()
-            await page.wait_for_timeout(3000)
-            
-            # Extract first email content
-            content1 = await page.evaluate("""() => {
-                const mainContent = document.querySelector('[role="main"]');
-                if (mainContent) return mainContent.innerText;
-                const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
-                if (messageBody) return messageBody.innerText;
-                const readingPane = document.querySelector('.readingPane, .reading-pane');
-                if (readingPane) return readingPane.innerText;
-                return document.body.innerText;
-            }""")
-            
+        first_email = page.locator("div[data-convid]").first
+        await first_email.click()
+        await page.wait_for_timeout(3000)
+        
+        # Extract first email content
+        content1 = await page.evaluate("""() => {
+            const mainContent = document.querySelector('[role="main"]');
+            if (mainContent) return mainContent.innerText;
+            const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
+            if (messageBody) return messageBody.innerText;
+            const readingPane = document.querySelector('.readingPane, .reading-pane');
+            if (readingPane) return readingPane.innerText;
+            return document.body.innerText;
+        }""")
+        
+        with open("outlook_emails.txt", "a", encoding="utf-8") as f:
             f.write("=== FIRST EMAIL ===\n")
             f.write(content1)
             f.write("\n\n")
-            
-            # Go back to inbox
-            await page.go_back()
-            await page.wait_for_timeout(2000)
-            
-            # Process second email
-            print("Processing second email...")
-            second_email = page.locator("div[data-convid]").nth(1)
-            await second_email.click()
-            await page.wait_for_timeout(3000)
-            
-            # Extract second email content
-            content2 = await page.evaluate("""() => {
-                const mainContent = document.querySelector('[role="main"]');
-                if (mainContent) return mainContent.innerText;
-                const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
-                if (messageBody) return messageBody.innerText;
-                const readingPane = document.querySelector('.readingPane, .reading-pane');
-                if (readingPane) return readingPane.innerText;
-                return document.body.innerText;
-            }""")
-            
+        
+        # Take a screenshot of the first email
+        await page.screenshot(path="screenshots/email_1.png")
+        
+        # Go back to inbox
+        await page.go_back()
+        await page.wait_for_timeout(2000)
+        
+        # Process second email
+        print("Processing second email...")
+        second_email = page.locator("div[data-convid]").nth(1)
+        await second_email.click()
+        await page.wait_for_timeout(3000)
+        
+        # Extract second email content
+        content2 = await page.evaluate("""() => {
+            const mainContent = document.querySelector('[role="main"]');
+            if (mainContent) return mainContent.innerText;
+            const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
+            if (messageBody) return messageBody.innerText;
+            const readingPane = document.querySelector('.readingPane, .reading-pane');
+            if (readingPane) return readingPane.innerText;
+            return document.body.innerText;
+        }""")
+        
+        with open("outlook_emails.txt", "a", encoding="utf-8") as f:
             f.write("=== SECOND EMAIL ===\n")
             f.write(content2)
             f.write("\n\n")
-            
-            processed_count = 2
-            print(f"Successfully processed {processed_count} emails")
-            
-        except Exception as e:
-            print(f"Error processing emails: {str(e)}")
-            return f"Error processing emails: {str(e)}"
-    
-    return f"Processed {processed_count} emails. Results saved to {output_path}"
+        
+        # Take a screenshot of the second email
+        await page.screenshot(path="screenshots/email_2.png")
+        
+        print("Both emails saved to outlook_emails.txt")
+        
+        # Log successful email collection
+        log_success("collect_emails", {
+            "total_emails_collected": 2,
+            "emails": [
+                {"email_number": 1, "content_length": len(content1), "screenshot": "email_1.png"},
+                {"email_number": 2, "content_length": len(content2), "screenshot": "email_2.png"}
+            ]
+        })
+        
+        return "Email collection completed. Check outlook_emails.txt for the results."
+        
+    except Exception as e:
+        print(f"Failed to process emails: {str(e)}")
+        return f"Error collecting emails: {str(e)}"
 
 @function_tool(
     name_override="diagnose_search_and_emails",
