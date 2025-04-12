@@ -5,6 +5,7 @@ import uuid
 import sys
 import os
 import re
+import pdb
 
 from pydantic import BaseModel
 
@@ -112,7 +113,7 @@ class ExtractEmailContext(BaseModel):
     text: str = ""
     n_emails: int = 10
     search_person: str = "Lynn Gadue"
-    email: str = "tolds@3clife.info"
+    email: str = "tolds@ceresinsurance.com"
     password: str = "annuiTy2024!"
     logged_in: bool = False  # Track login state
     search_complete: bool = False  # Track search state
@@ -268,6 +269,7 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
         try:
             await page.wait_for_selector(selector, timeout=5000)
             await page.screenshot(path=f"screenshots/found_selector_{selector.replace('[', '_').replace(']', '_').replace('*', '_')}.png")
+            pdb.set_trace()
             return f"Found search box with selector: {selector}"
         except:
             continue
@@ -291,7 +293,7 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
 async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: str) -> str:
     global computer_instance
     page = computer_instance.page
-    
+    print("inside search_in_outlook")
     # Format the query if it doesn't have "From:" prefix and it's a person search
     if "Lynn Gadue" in query and not query.startswith("From:"):
         query = f"From:Lynn Gadue"
@@ -312,7 +314,7 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
         "input.searchInput",
         ".ms-SearchBox-field"
     ]
-    
+    #selectors = "div[role='search'] input"
     search_box = None
     for selector in selectors:
         try:
@@ -379,6 +381,7 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
                             
                             sender_count = await page.locator("text=Lynn Gadue").count()
                             if sender_count > 0:
+                                pdb.set_trace()
                                 return f"Search completed for '{query}'. Found {sender_count} emails from Lynn Gadue."
                         except:
                             continue
@@ -969,8 +972,47 @@ async def main():
         
         print("Email extraction task complete.")
 
+
+
+
+#async def debug_main():
+#    global computer_instance
+#    #enable_verbose_stdout_logging()
+    
+#    async with OutlookPlaywrightComputer() as computer:
+#        computer_instance = computer
+        
+#        # Create context instance.
+#        context = ExtractEmailContext(n_emails=5)
+#        ctx = RunContextWrapper(context)
+#        os.makedirs("screenshots", exist_ok=True)
+        
+#        # Step 1: Login
+#        login_result = await login_to_outlook(ctx, email=context.email, password=context.password)
+#        print("Login result:", login_result)
+#        pdb.set_trace()  # Pause here to inspect after login
+        
+#        # Step 2: Search for emails
+#        search_result = await search_in_outlook(ctx, query="from:Lynn Gadue")
+#        print("Search result:", search_result)
+#        pdb.set_trace()  # Pause here to inspect after search
+        
+#        # Step 3: Scroll to load more emails
+#        scroll_result = await enhanced_outlook_scroll(ctx, n_emails=context.n_emails)
+#        print("Scroll result:", scroll_result)
+#        pdb.set_trace()  # Pause here to inspect after scrolling
+        
+#        # Step 4: Collect emails
+#        collect_result = await collect_emails(ctx)
+#        print("Collect emails result:", collect_result)
+#        pdb.set_trace()  # Pause here to inspect after collection
+        
+#        # Additional steps for diagnosing and analyzing can also be added.
+
+
 if __name__ == "__main__":
     asyncio.run(main())
+    #asyncio.run(debug_main())
 
 
 #if __name__ == "__main__":
