@@ -6,8 +6,32 @@ import sys
 import os
 import re
 import pdb
+import logging
+import json
+from typing import Any
 
 from pydantic import BaseModel
+
+# Configure logging:
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Process all messages at the logger level
+
+# File handler: log all DEBUG messages to agent_debug.log.
+file_handler = logging.FileHandler("agent_debug.log")
+file_handler.setLevel(logging.DEBUG)  # All messages (DEBUG+) go to file.
+file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+file_handler.setFormatter(file_formatter)
+
+# Stream (console) handler: log only INFO-level messages and above.
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)  # Only INFO and above appear on console.
+stream_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+stream_handler.setFormatter(stream_formatter)
+
+# Remove any existing handlers if necessary, then add our handlers.
+logger.handlers.clear()
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 # Add the project root so that the examples folder is in the module search path.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
@@ -25,6 +49,20 @@ from agents import (
     enable_verbose_stdout_logging,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+
+def log_success(operation: str, details: dict) -> None:
+    """
+    Log a successful operation with its details.
+    
+    Args:
+        operation: The name of the operation that succeeded
+        details: A dictionary containing details about the operation
+    """
+    try:
+        logger.info(f"Operation '{operation}' completed successfully")
+        logger.debug(f"Success details: {json.dumps(details, indent=2)}")
+    except Exception as e:
+        logger.error(f"Failed to log success for operation '{operation}': {e}")
 
 # =============================================================================
 # SUBCLASS LocalPlaywrightComputer TO USE OUTLOOK AS THE STARTING URL
@@ -117,6 +155,8 @@ class ExtractEmailContext(BaseModel):
     password: str = "annuiTy2024!"
     logged_in: bool = False  # Track login state
     search_complete: bool = False  # Track search state
+    openai_client: Any = None  # Add OpenAI client to context
+
 # =============================================================================
 # TOOL: LOGIN TO OUTLOOK
 # =============================================================================
@@ -293,7 +333,8 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
 async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: str) -> str:
     global computer_instance
     page = computer_instance.page
-    print("inside search_in_outlook")
+    logger.info(f"Starting search with query: {query}")
+    
     # Format the query if it doesn't have "From:" prefix and it's a person search
     if "Lynn Gadue" in query and not query.startswith("From:"):
         query = f"From:Lynn Gadue"
@@ -314,111 +355,76 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
         "input.searchInput",
         ".ms-SearchBox-field"
     ]
-    #selectors = "div[role='search'] input"
+    
     search_box = None
     for selector in selectors:
         try:
             # Wait for the element to be visible
             search_box = page.locator(selector)
             await search_box.wait_for(state="visible", timeout=5000)
-            
-            # Try to click and clear the search box
-            await search_box.click()
-            await page.wait_for_timeout(500)
-            
-            # Clear existing text using keyboard shortcuts
-            await page.keyboard.down("Control")
-            await page.keyboard.press("A")
-            await page.keyboard.up("Control")
-            await page.keyboard.press("Backspace")
-            await page.wait_for_timeout(500)
-            
-            # Enter the search query
-            await search_box.fill(query)
-            await page.wait_for_timeout(1000)
-            
-            # Submit the search
-            await page.keyboard.press("Enter")
-            
-            # Wait for results with increased timeout
-            await page.wait_for_timeout(8000)
-            
-            # Verify search results
-            try:
-                # Wait for search results to load with increased timeout
-                await page.wait_for_selector("div.mailListItem", timeout=15000)
-                
-                # Verify we're seeing emails from Lynn Gadue
-                sender_count = await page.locator("text=Lynn Gadue").count()
-                if sender_count > 0:
-                    await page.screenshot(path="screenshots/search_results.png")
-                    
-                    # Try to scroll to load more results
-                    await enhanced_outlook_scroll(ctx, 50)  # Scroll to load more results
-                    
-                    # Count again after scrolling
-                    sender_count = await page.locator("text=Lynn Gadue").count()
-                    return f"Search completed for '{query}'. Found {sender_count} emails from Lynn Gadue."
-                else:
-                    # If no Lynn Gadue emails found, try alternative result selectors
-                    result_selectors = [
-                        "div.mailListItem",
-                        "div[data-convid]",
-                        ".ZtMcN",
-                        "[role='row']"
-                    ]
-                    
-                    for result_selector in result_selectors:
-                        try:
-                            await page.wait_for_selector(result_selector, timeout=5000)
-                            # Try searching again with a more specific query
-                            await search_box.fill("From:Lynn Gadue")
-                            await page.keyboard.press("Enter")
-                            await page.wait_for_timeout(8000)
-                            
-                            # Try to scroll to load more results
-                            await enhanced_outlook_scroll(ctx, 50)
-                            
-                            sender_count = await page.locator("text=Lynn Gadue").count()
-                            if sender_count > 0:
-                                pdb.set_trace()
-                                return f"Search completed for '{query}'. Found {sender_count} emails from Lynn Gadue."
-                        except:
-                            continue
-                    
-                    return f"Search completed but no emails from Lynn Gadue found. Try a different search query."
-                
-            except Exception as e:
-                await page.screenshot(path="screenshots/search_verification_error.png")
-                return f"Error verifying search results: {str(e)}"
-                
+            logger.info(f"Found search box with selector: {selector}")
+            break
         except Exception as e:
-            print(f"Selector {selector} failed: {str(e)}")
+            logger.debug(f"Selector {selector} failed: {str(e)}")
             continue
     
-    # If we get here, none of the selectors worked
-    await page.screenshot(path="screenshots/search_failed.png")
+    if not search_box:
+        logger.error("Could not find search box with any selector")
+        return "Could not find search box with any selector"
     
-    # Try to diagnose the page state
     try:
-        page_info = await page.evaluate("""() => {
-            return {
-                url: window.location.href,
-                inputs: document.querySelectorAll('input').length,
-                searchInputs: document.querySelectorAll('input[type="search"]').length,
-                ariaSearch: document.querySelectorAll('input[aria-label*="Search"]').length,
-                lynnEmails: Array.from(document.querySelectorAll('*')).filter(el => 
-                    el.innerText && el.innerText.includes('Lynn Gadue')).length
-            };
-        }""")
+        # Clear existing text
+        await search_box.click()
+        await page.wait_for_timeout(500)
+        await page.keyboard.down("Control")
+        await page.keyboard.press("A")
+        await page.keyboard.up("Control")
+        await page.keyboard.press("Backspace")
+        await page.wait_for_timeout(500)
         
-        with open("search_failure_diagnosis.json", "w") as f:
-            import json
-            json.dump(page_info, f, indent=2)
-    except:
-        pass
-    
-    return f"Could not perform search with any of the selectors. Check screenshots and search_failure_diagnosis.json for details."
+        # Enter the search query
+        await search_box.fill(query)
+        await page.wait_for_timeout(1000)
+        
+        # Submit the search
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(8000)
+        
+        # Try multiple selectors for search results
+        result_selectors = [
+            "div.mailListItem",
+            "div[data-convid]",
+            ".ZtMcN",
+            "[role='row']",
+            "div[class*='mailListItem']",
+            "div[class*='messageListItem']"
+        ]
+        
+        for result_selector in result_selectors:
+            try:
+                logger.debug(f"Trying to find results with selector: {result_selector}")
+                await page.wait_for_selector(result_selector, timeout=5000)
+                logger.info(f"Found search results with selector: {result_selector}")
+                
+                # Count results
+                result_count = await page.locator(result_selector).count()
+                logger.info(f"Found {result_count} search results")
+                
+                # Take screenshot of results
+                await page.screenshot(path="screenshots/search_results.png")
+                
+                return f"Search completed for '{query}'. Found {result_count} results."
+            except Exception as e:
+                logger.debug(f"Result selector {result_selector} failed: {str(e)}")
+                continue
+        
+        logger.warning("Could not find any search results with the tried selectors")
+        return "Search completed but could not verify results. Check screenshots for details."
+        
+    except Exception as e:
+        logger.error(f"Error during search: {str(e)}")
+        await page.screenshot(path="screenshots/search_error.png")
+        return f"Error during search: {str(e)}"
 
 
 
@@ -678,7 +684,7 @@ async def minimal_outlook_scroll(ctx: RunContextWrapper[ExtractEmailContext], n_
 # =============================================================================
 @function_tool(
     name_override="collect_emails",
-    description_override="Collect the first 3 emails from Lynn Gadue and save their content to outlook_emails.txt"
+    description_override="Collect the first 5 emails from Lynn Gadue and save their content to outlook_emails.txt"
 )
 async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
@@ -701,8 +707,8 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
         # Wait for email list to load
         await page.wait_for_selector("div[data-convid]", timeout=10000)
         
-        # Process exactly 3 emails
-        for i in range(3):
+        # Process exactly 5 emails
+        for i in range(5):
             print(f"\nProcessing email {i+1} of 3...")
             
             # Scroll to make sure the email is visible
@@ -743,7 +749,7 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
             await page.screenshot(path=f"screenshots/email_{i+1}.png")
             
             # Go back to inbox with retry logic
-            for attempt in range(3):
+            for attempt in range(5):
                 try:
                     await page.go_back()
                     await page.wait_for_timeout(2000)
@@ -762,12 +768,12 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
             
             print(f"Successfully processed email {i+1}")
         
-        print(f"\nCompleted processing 3 emails")
+        print(f"\nCompleted processing 5 emails")
         
         # Log successful email collection
         log_success("collect_emails", {
-            "total_emails_collected": 3,
-            "screenshots": ["email_1.png", "email_2.png", "email_3.png"]
+            "total_emails_collected": 5,
+            "screenshots": ["email_1.png", "email_2.png", "email_3.png", "email_4.png", "email_5.png"]
         })
         
         return "Email collection completed. Successfully collected 3 emails. Check outlook_emails.txt for the results."
@@ -851,7 +857,7 @@ Screenshots and detailed JSON saved for further analysis."""
 
 @function_tool(
     name_override="analyze_emails",
-    description_override="Analyze the collected emails and create a summary of key points and open questions."
+    description_override="Analyze the collected emails using OpenAI to create a detailed summary of key points and open questions."
 )
 async def analyze_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     try:
@@ -859,26 +865,31 @@ async def analyze_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
         with open("outlook_emails.txt", "r", encoding="utf-8") as f:
             email_content = f.read()
         
-        print("\nDEBUG: Reading email content for analysis...")
-        print(f"DEBUG: Email content length: {len(email_content)}")
-        print(f"DEBUG: First 200 chars of email content:\n{email_content[:200]}\n")
+        logger.debug("Reading email content for analysis...")
+        logger.debug(f"Email content length: {len(email_content)}")
+        
+        if not ctx.context.openai_client:
+            logger.error("OpenAI client not available in context")
+            return "Error: OpenAI client not configured. Please ensure the client is set in the context."
         
         # Prepare the prompt for GPT-4
-        prompt = f"""Please analyze these emails and create a chronological summary of the discussions. Focus on:
+        prompt = f"""Please analyze these emails and create a detailed summary. Focus on:
 1. Key topics discussed
 2. Important decisions or conclusions reached
 3. Open questions or unresolved issues
 4. Any action items or next steps mentioned
+5. Timeline of events
+6. Key stakeholders involved
 
 Here are the emails to analyze:
 {email_content}"""
         
         try:
             # Call OpenAI API
-            response = await ctx.client.chat.completions.create(
+            response = await ctx.context.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You are an expert at analyzing email threads and extracting key information."},
+                    {"role": "system", "content": "You are an expert at analyzing email threads and extracting key information. Provide a clear, structured analysis."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
@@ -887,18 +898,18 @@ Here are the emails to analyze:
             
             # Save the analysis
             analysis = response.choices[0].message.content
-            print("\nDEBUG: Saving analysis to email_takeaways.txt...")
             with open("email_takeaways.txt", "w", encoding="utf-8") as f:
                 f.write(analysis)
             
+            logger.info("Email analysis complete using OpenAI")
             return "Email analysis complete. Results saved to email_takeaways.txt"
         
         except Exception as e:
-            print(f"DEBUG: Error during OpenAI API call: {str(e)}")
-            return f"Error analyzing emails: {str(e)}"
+            logger.error(f"Error during OpenAI API call: {str(e)}")
+            return f"Error analyzing emails with OpenAI: {str(e)}"
     
     except Exception as e:
-        print(f"DEBUG: Error reading email file: {str(e)}")
+        logger.error(f"Error reading email file: {str(e)}")
         return f"Error reading email file: {str(e)}"
 
 # =============================================================================
@@ -911,9 +922,11 @@ You are an email extraction agent that will help collect and analyze emails from
 Follow these steps in order:
 
 1. First, log into Outlook using the login_to_outlook function
-2. Then, search for emails from Lynn Gadue using the search_in_outlook function
-3. Next, collect the emails using the collect_emails function, specifying how many emails to collect
-4. Finally, analyze the collected emails using the analyze_emails function to generate a summary of key points and open questions
+2. Then, find the search of the Outlook UI using the find_search_box function
+3. Then, search for emails from Lynn Gadue using the search_in_outlook function
+4. Next, collect the content of the emails using the collect_emails function, specifying how many emails to collect. it will possibly be necessary to clck on each email in order to see and extract its content.
+5. Note that might also be necessary to re sort or re search the inbox once you've clicked on a particular email and want to collect content from the next email. we only want to be collect content of emails from the specific sender designated for this run of the agent.
+6. Finally, analyze the collected emails using the analyze_emails function to generate a summary of key points and open questions
 
 After each step, verify that it completed successfully before moving to the next step.
 If any step fails, try to diagnose the issue and retry the step.
@@ -950,14 +963,18 @@ async def main():
     global computer_instance
     enable_verbose_stdout_logging()
     
+    # Initialize OpenAI client
+    from openai import AsyncOpenAI
+    openai_client = AsyncOpenAI()
+    
     async with OutlookPlaywrightComputer() as computer:
         computer_instance = computer
         
         # Provide an initial input to start the process.
         input_items: list[TResponseInputItem] = [{"role": "user", "content": "start email extraction"}]
-        context = ExtractEmailContext(n_emails=5)  # For testing, extract 5 emails.
+        context = ExtractEmailContext(n_emails=5, openai_client=openai_client)  # Add OpenAI client to context
 
-         # Ensure "screenshots" directory exists
+        # Ensure "screenshots" directory exists
         os.makedirs("screenshots", exist_ok=True)
         
         with trace("Outlook Email Extraction Agent"):
