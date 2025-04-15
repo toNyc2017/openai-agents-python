@@ -8,30 +8,130 @@ import re
 import pdb
 import logging
 import json
+import datetime
 from typing import Any
 
 from pydantic import BaseModel
 
-# Configure logging:
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Process all messages at the logger level
+# Add detailed trace logging
+class DetailedTraceLogger:
+    def __init__(self, filename=None):
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_file = filename or f"agent_trace_log_{timestamp}.jsonl"
+        
+        # Store original stdout/stderr
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        
+        # Create a root logger
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)  # Changed from DEBUG to INFO
+        
+        # Remove any existing handlers
+        self.logger.handlers.clear()
+        
+        # File handler for JSONL trace log with custom formatter
+        class JSONFormatter(logging.Formatter):
+            def format(self, record):
+                # Skip certain noisy messages
+                msg = record.getMessage()
+                if "Creating trace" in msg or "Using selector" in msg:
+                    return None
+                
+                # Create the base log entry
+                log_entry = {
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "level": record.levelname,
+                    "message": msg
+                }
+                
+                # Add extra fields if they exist
+                if hasattr(record, 'details'):
+                    log_entry.update(record.details)
+                
+                return json.dumps(log_entry)
+        
+        # Create handlers
+        self.trace_handler = logging.FileHandler(self.log_file)
+        self.trace_handler.setFormatter(JSONFormatter())
+        self.trace_handler.setLevel(logging.INFO)  # Changed from DEBUG to INFO
+        
+        # Console handler with minimal formatting
+        self.console_handler = logging.StreamHandler(self.original_stdout)
+        self.console_handler.setFormatter(logging.Formatter('%(message)s'))
+        self.console_handler.setLevel(logging.INFO)
+        
+        # Add handlers to logger
+        self.logger.addHandler(self.trace_handler)
+        self.logger.addHandler(self.console_handler)
+        
+        # Set up stdout/stderr capture
+        self.setup_stdout_capture()
+    
+    def setup_stdout_capture(self):
+        """Capture stdout and stderr to also log to the trace file"""
+        class StreamToLogger:
+            def __init__(self, logger, level, original_stream):
+                self.logger = logger
+                self.level = level
+                self.original_stream = original_stream
+            
+            def write(self, buf):
+                if not buf or not buf.strip():
+                    return
+                self.original_stream.write(buf)
+                self.original_stream.flush()
+                self.logger.log(self.level, buf.rstrip())
+            
+            def flush(self):
+                self.original_stream.flush()
+            
+            def isatty(self):
+                return hasattr(self.original_stream, 'isatty') and self.original_stream.isatty()
+            
+            def fileno(self):
+                return self.original_stream.fileno()
+        
+        # Redirect stdout and stderr while preserving originals
+        sys.stdout = StreamToLogger(self.logger, logging.INFO, self.original_stdout)
+        sys.stderr = StreamToLogger(self.logger, logging.ERROR, self.original_stderr)
+    
+    def restore_streams(self):
+        """Restore original stdout/stderr"""
+        sys.stdout = self.original_stdout
+        sys.stderr = self.original_stderr
 
-# File handler: log all DEBUG messages to agent_debug.log.
-file_handler = logging.FileHandler("agent_debug.log")
-file_handler.setLevel(logging.DEBUG)  # All messages (DEBUG+) go to file.
-file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-file_handler.setFormatter(file_formatter)
+# Initialize basic logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-# Stream (console) handler: log only INFO-level messages and above.
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.INFO)  # Only INFO and above appear on console.
-stream_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-stream_handler.setFormatter(stream_formatter)
+# Create a formatter that includes timestamp and log level
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-# Remove any existing handlers if necessary, then add our handlers.
-logger.handlers.clear()
+# Create file handler for all logs
+file_handler = logging.FileHandler('email_extraction.log')
+file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+
+# Create console handler that only shows important messages
+class ConsoleFilter(logging.Filter):
+    def filter(self, record):
+        # Only show messages that are INFO level or higher
+        # and contain certain keywords
+        keywords = ['Starting', 'Successfully', 'Error', 'Failed', 'Summary']
+        return (record.levelno >= logging.INFO and 
+                any(keyword in record.getMessage() for keyword in keywords))
+
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(logging.Formatter('%(message)s'))
+console_handler.addFilter(ConsoleFilter())
+logger.addHandler(console_handler)
+
+# Verify logging is working
+logger.info("=== Starting Email Extraction Process ===")
+logger.info("Logging system initialized successfully")
+logger.info("Detailed logs will be saved to email_extraction.log")
 
 # Add the project root so that the examples folder is in the module search path.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
@@ -172,99 +272,30 @@ async def login_to_outlook(ctx: RunContextWrapper[ExtractEmailContext], email: s
         # Take a screenshot before starting
         await page.screenshot(path="screenshots/before_login.png")
         
-        # 1. Navigate to Outlook sign-in page
+        # Navigate to the specific OAuth2 endpoint
+        #await page.goto("https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3a%2f%2foutlook.office.com%2fowa%2f&resource=00000002-0000-0ff1-ce00-000000000000&response_mode=form_post&response_type=code+id_token&scope=openid")
         await page.goto("https://outlook.office.com")
-        await page.wait_for_timeout(2000)  # Wait for page to load
+        # Wait for and fill email input using role-based selector
+        email_input = page.get_by_role("textbox", name="Enter your email, phone, or")
+        await email_input.wait_for(state="visible", timeout=5000)
+        await email_input.click()
+        await email_input.fill(email)
+        await page.get_by_role("button", name="Next").click()
         
-        # 2. Wait for and fill email input
-        try:
-            # Try multiple selectors for email input
-            email_selectors = [
-                "input[type='email']",
-                "input[aria-label*='email']",
-                "input[placeholder*='email']"
-            ]
-            
-            email_input = None
-            for selector in email_selectors:
-                try:
-                    email_input = page.locator(selector)
-                    await email_input.wait_for(state="visible", timeout=5000)
-                    break
-                except:
-                    continue
-            
-            if not email_input:
-                raise Exception("Could not find email input field")
-            
-            # Clear any existing text
-            await email_input.click()
-            await page.keyboard.down("Control")
-            await page.keyboard.press("A")
-            await page.keyboard.up("Control")
-            await page.keyboard.press("Backspace")
-            
-            # Enter email
-            await email_input.fill(email)
-            await page.wait_for_timeout(1000)
-            
-            # Click next/submit
-            submit_button = page.locator("input[type='submit']")
-            if await submit_button.count() > 0:
-                await submit_button.click()
-            else:
-                await page.keyboard.press("Enter")
-            
-            await page.wait_for_timeout(2000)
-            
-        except Exception as e:
-            await page.screenshot(path="screenshots/email_input_error.png")
-            return f"Error entering email: {str(e)}"
+        # Wait for and fill password input
+        password_input = page.locator("#i0118")
+        await password_input.wait_for(state="visible", timeout=5000)
+        await password_input.fill(password)
+        await page.get_by_role("button", name="Sign in").click()
         
-        # 3. Wait for and fill password input
-        try:
-            # Try multiple selectors for password input
-            password_selectors = [
-                "input[type='password']",
-                "input[aria-label*='password']",
-                "input[placeholder*='password']"
-            ]
-            
-            password_input = None
-            for selector in password_selectors:
-                try:
-                    password_input = page.locator(selector)
-                    await password_input.wait_for(state="visible", timeout=5000)
-                    break
-                except:
-                    continue
-            
-            if not password_input:
-                raise Exception("Could not find password input field")
-            
-            # Enter password
-            await password_input.fill(password)
-            await page.wait_for_timeout(1000)
-            
-            # Click sign in
-            submit_button = page.locator("input[type='submit']")
-            if await submit_button.count() > 0:
-                await submit_button.click()
-            else:
-                await page.keyboard.press("Enter")
-            
-            # Wait for MFA or successful login
-            await page.wait_for_timeout(20000)  # 20 seconds for MFA
-            
-        except Exception as e:
-            await page.screenshot(path="screenshots/password_input_error.png")
-            return f"Error entering password: {str(e)}"
+        # Wait for MFA or successful login
+        await page.wait_for_timeout(20000)  # 20 seconds for MFA
         
-        # 4. Navigate to inbox
-        await page.goto("https://outlook.office.com/mail/inbox")
+        # Navigate to inbox
+        await page.goto("https://outlook.office.com/mail/")
         await page.wait_for_timeout(5000)
         
-        # 5. Take a screenshot after login
+        # Take a screenshot after login
         await page.screenshot(path="screenshots/after_login.png")
         
         return "Logged in successfully. Check screenshots for details."
@@ -295,8 +326,8 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     
     # List of possible selectors to try
     selectors = [
-        "input[aria-label='Search']",
-        "input[aria-label='Search mail']",
+        #"input[aria-label='Search']",
+        #"input[aria-label='Search mail']",
         "input[placeholder*='Search']",
         "div[role='search'] input",
         "#search-box",
@@ -309,7 +340,7 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
         try:
             await page.wait_for_selector(selector, timeout=5000)
             await page.screenshot(path=f"screenshots/found_selector_{selector.replace('[', '_').replace(']', '_').replace('*', '_')}.png")
-            pdb.set_trace()
+            #pdb.set_trace()
             return f"Found search box with selector: {selector}"
         except:
             continue
@@ -326,28 +357,18 @@ async def find_search_box(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
 # =============================================================================
 # TOOL: SEARCH IN OUTLOOK
 # =============================================================================
-@function_tool(
-    name_override="search_in_outlook",
-    description_override="Search for emails using the Outlook search box with improved reliability and filter maintenance."
-)
-async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: str) -> str:
-    global computer_instance
-    page = computer_instance.page
+# Add the search helper function before the tool definition
+async def _search_in_outlook_impl(page, query, logger):
     logger.info(f"Starting search with query: {query}")
-    
     # Format the query if it doesn't have "From:" prefix and it's a person search
     if "Lynn Gadue" in query and not query.startswith("From:"):
         query = f"From:Lynn Gadue"
     elif "Gadue" in query and not query.startswith("From:"):
         query = f"From:Lynn Gadue"  # Force the correct search format
-    
     # Take a screenshot before search
     await page.screenshot(path="screenshots/before_search.png")
-    
     # Try multiple possible selectors with improved waiting
     selectors = [
-        "input[aria-label='Search']",
-        "input[aria-label='Search mail']",
         "input[placeholder*='Search']",
         "div[role='search'] input",
         "#search-box",
@@ -355,7 +376,6 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
         "input.searchInput",
         ".ms-SearchBox-field"
     ]
-    
     search_box = None
     for selector in selectors:
         try:
@@ -367,11 +387,9 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
         except Exception as e:
             logger.debug(f"Selector {selector} failed: {str(e)}")
             continue
-    
     if not search_box:
         logger.error("Could not find search box with any selector")
         return "Could not find search box with any selector"
-    
     try:
         # Clear existing text
         await search_box.click()
@@ -381,15 +399,12 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
         await page.keyboard.up("Control")
         await page.keyboard.press("Backspace")
         await page.wait_for_timeout(500)
-        
         # Enter the search query
         await search_box.fill(query)
         await page.wait_for_timeout(1000)
-        
         # Submit the search
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(8000)
-        
         # Try multiple selectors for search results
         result_selectors = [
             "div.mailListItem",
@@ -399,34 +414,36 @@ async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: 
             "div[class*='mailListItem']",
             "div[class*='messageListItem']"
         ]
-        
         for result_selector in result_selectors:
             try:
                 logger.debug(f"Trying to find results with selector: {result_selector}")
                 await page.wait_for_selector(result_selector, timeout=5000)
                 logger.info(f"Found search results with selector: {result_selector}")
-                
                 # Count results
                 result_count = await page.locator(result_selector).count()
                 logger.info(f"Found {result_count} search results")
-                
                 # Take screenshot of results
                 await page.screenshot(path="screenshots/search_results.png")
-                
                 return f"Search completed for '{query}'. Found {result_count} results."
             except Exception as e:
                 logger.debug(f"Result selector {result_selector} failed: {str(e)}")
                 continue
-        
         logger.warning("Could not find any search results with the tried selectors")
         return "Search completed but could not verify results. Check screenshots for details."
-        
     except Exception as e:
         logger.error(f"Error during search: {str(e)}")
         await page.screenshot(path="screenshots/search_error.png")
         return f"Error during search: {str(e)}"
 
-
+# Update the tool to use the helper
+@function_tool(
+    name_override="search_in_outlook",
+    description_override="Search for emails using the Outlook search box with improved reliability and filter maintenance."
+)
+async def search_in_outlook(ctx: RunContextWrapper[ExtractEmailContext], query: str) -> str:
+    global computer_instance
+    page = computer_instance.page
+    return await _search_in_outlook_impl(page, query, logger)
 
 
 
@@ -458,18 +475,18 @@ async def save_page_html(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
 # =============================================================================
 @function_tool(
     name_override="diagnose_outlook_page",
-    description_override="Analyze the Outlook page structure and elements to help debug extraction issues."
+    description_override="Diagnose the Outlook page structure and elements to help debug extraction issues."
 )
 async def diagnose_outlook_page(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
     page = computer_instance.page
     
-    await page.screenshot(path="screenshots/diagnosis.png")
+    # Take a screenshot of the current page
+    await page.screenshot(path="screenshots/diagnose_search.png")
     
-    # Get details about the page elements
+    # Gather basic page info
     page_info = await page.evaluate("""() => {
         const data = {
-            title: document.title,
             url: window.location.href,
             elements: {
                 rows: document.querySelectorAll('[role="row"]').length,
@@ -488,33 +505,67 @@ async def diagnose_outlook_page(ctx: RunContextWrapper[ExtractEmailContext]) -> 
             }
         };
         
-        // Get some key class names
-        data.classes = {};
-        ['ZtMcN', 'hcptT', 'customScrollBar', 'ms-List-cell', 'messageBody'].forEach(cls => {
-            data.classes[cls] = document.querySelectorAll('.' + cls).length;
-        });
+        // Get search box value
+        const searchBox = document.querySelector('input[aria-label*="Search"]') || 
+                         document.querySelector('input[type="search"]') ||
+                         document.querySelector('input[placeholder*="Search"]');
+        if (searchBox) {
+            data.currentSearchValue = searchBox.value;
+        }
         
         return data;
     }""")
     
-    # Save diagnostic info
-    with open("outlook_diagnosis.json", "w") as f:
+    # Save high-level page info as JSON
+    with open("search_diagnosis.json", "w") as f:
         import json
         json.dump(page_info, f, indent=2)
     
-    # Try some direct element clicks to see if they work
+    # Capture innerHTML and innerText of the first email element
+    email_html = await page.evaluate("""() => {
+        const el = document.querySelector('div[data-convid]');
+        return el ? el.innerHTML : "No email element found";
+    }""")
+    with open("email_sample.html", "w") as f:
+        f.write(email_html)
+    
+    email_text = await page.evaluate("""() => {
+        const el = document.querySelector('div[data-convid]');
+        return el ? el.innerText : "No email element found";
+    }""")
+    with open("email_sample.txt", "w") as f:
+        f.write(email_text)
+    
+    # Try direct element clicks to see if they work
     direct_click_results = []
     
     # Try clicking on Lynn Gadue text
     try:
-        await page.click("text=Lynn Gadue", {timeout: 3000})
+        await page.click("text=Lynn Gadue", timeout=3000)
         await page.wait_for_timeout(1000)
         await page.screenshot(path="screenshots/after_lynn_click.png")
-        direct_click_results.push("Successfully clicked 'Lynn Gadue' text")
+        direct_click_results.append("Successfully clicked 'Lynn Gadue' text")
     except Exception as e:
-        direct_click_results.push(f"Failed to click 'Lynn Gadue' text: {str(e)}")
+        direct_click_results.append(f"Failed to click 'Lynn Gadue' text: {str(e)}")
     
-    return f"Diagnosis complete. Found {page_info['textContent']['lynnGadue']} elements with 'Lynn Gadue' text. Details saved to outlook_diagnosis.json."
+    return f"""Diagnostic Results:
+1. Search Box Status:
+   - Total input fields: {page_info['elements']['inputs']}
+   - Current search value: {page_info.get('currentSearchValue', 'None')}
+
+2. Email List Status:
+   - Total rows: {page_info['elements']['rows']}
+   - Lynn Gadue mentions: {page_info['textContent']['lynnGadue']}
+
+3. Click Test Results:
+   - {direct_click_results[0]}
+
+4. Email Sample Files:
+   - Saved HTML: email_sample.html
+   - Saved Text: email_sample.txt
+
+5. Screenshot: screenshots/diagnose_search.png
+"""
 
 
 
@@ -682,104 +733,316 @@ async def minimal_outlook_scroll(ctx: RunContextWrapper[ExtractEmailContext], n_
 # =============================================================================
 # TOOL: COLLECT EMAILS
 # =============================================================================
+def clean_email_content(content: str) -> str:
+    """Clean up email content by removing UI elements and normalizing formatting."""
+    # Remove UI elements
+    ui_elements = [
+        "Reply", "Reply all", "Forward",
+        "Summary by Copilot",
+        "To:​", "Cc:​",
+        "​​"  # Remove zero-width spaces
+    ]
+    
+    cleaned = content
+    for element in ui_elements:
+        cleaned = cleaned.replace(element, "")
+    
+    # Remove excessive blank lines (more than 2 consecutive)
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    
+    # Remove lines that are just whitespace
+    cleaned = '\n'.join(line for line in cleaned.split('\n') if line.strip())
+    
+    return cleaned.strip()
+
 @function_tool(
     name_override="collect_emails",
-    description_override="Collect the first 5 emails from Lynn Gadue and save their content to outlook_emails.txt"
+    description_override="Collect emails from Lynn Gadue and save their content to outlook_emails.txt"
 )
 async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
     page = computer_instance.page
     
+    # Get number of emails to collect from context
+    n_emails = ctx.context.n_emails
+    search_person = ctx.context.search_person
+    logger.info(f"Starting email collection for {n_emails} emails from {search_person}")
+    
     # Take a screenshot before starting
     await page.screenshot(path="screenshots/before_collect.png")
     
-    # Verify we're seeing emails from Lynn Gadue
-    sender_count = await page.locator("text=Lynn Gadue").count()
-    print(f"Found {sender_count} emails from Lynn Gadue")
-    if sender_count == 0:
-        return "No emails from Lynn Gadue found. Please run search_in_outlook first."
-    
-    # Initialize output file with a starting message
-    with open("outlook_emails.txt", "w", encoding="utf-8") as f:
-        f.write("=== Email Collection Started ===\n\n")
+    # Track processed email IDs and subjects to avoid duplicates
+    processed_ids = set()
+    processed_subjects = set()
+    emails_collected = 0
     
     try:
-        # Wait for email list to load
-        await page.wait_for_selector("div[data-convid]", timeout=10000)
+        logger.info("Waiting for email list to load...")
+        # Wait for email list to load with multiple selectors
+        selectors = [
+            "div[data-convid]",
+            "div[role='row']",
+            "div[class*='mailListItem']",
+            "div[class*='messageListItem']"
+        ]
         
-        # Process exactly 5 emails
-        for i in range(5):
-            print(f"\nProcessing email {i+1} of 3...")
-            
-            # Scroll to make sure the email is visible
-            await page.evaluate(f"""() => {{
-                const emails = document.querySelectorAll('div[data-convid]');
-                if (emails[{i}]) {{
-                    emails[{i}].scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                }}
-            }}""")
-            await page.wait_for_timeout(2000)
-            
-            # Get and click the email
-            email = page.locator("div[data-convid]").nth(i)
-            await email.click()
-            await page.wait_for_timeout(3000)
-            
-            # Wait for email content to load
-            await page.wait_for_selector("div[role='document']", timeout=5000)
-            
-            # Extract email content
-            content = await page.evaluate("""() => {
-                const mainContent = document.querySelector('[role="main"]');
-                if (mainContent) return mainContent.innerText;
-                const messageBody = document.querySelector('.messageBody, .emailBody, .messageContent, .emailContent');
-                if (messageBody) return messageBody.innerText;
-                const readingPane = document.querySelector('.readingPane, .reading-pane');
-                if (readingPane) return readingPane.innerText;
-                return document.body.innerText;
-            }""")
-            
-            # Write email content to file
-            with open("outlook_emails.txt", "a", encoding="utf-8") as f:
-                f.write(f"=== EMAIL {i+1} ===\n")
-                f.write(content)
-                f.write("\n\n")
-            
-            # Take a screenshot of the email
-            await page.screenshot(path=f"screenshots/email_{i+1}.png")
-            
-            # Go back to inbox with retry logic
-            for attempt in range(5):
+        email_elements = None
+        for selector in selectors:
+            try:
+                logger.info(f"Trying to find emails with selector: {selector}")
+                await page.wait_for_selector(selector, timeout=5000)
+                email_elements = await page.locator(selector).all()
+                if email_elements:
+                    logger.info(f"Found {len(email_elements)} emails with selector: {selector}")
+                    break
+            except Exception as e:
+                logger.debug(f"Selector {selector} failed: {str(e)}")
+                continue
+        
+        if not email_elements:
+            logger.error("Could not find any email elements with any selector")
+            await page.screenshot(path="screenshots/no_emails_found.png")
+            return "No email elements found. Please check the search results and try again."
+        
+        # Clear the output file before starting
+        with open("outlook_emails.txt", "w", encoding="utf-8") as f:
+            f.write("=== Email Collection Started ===\n\n")
+        
+        while emails_collected < n_emails:
+            try:
+                logger.info(f"Attempting to collect email {emails_collected + 1} of {n_emails}")
+                
+                # Find an unprocessed email from the search person
+                current_email = None
+                for i, email in enumerate(email_elements):
+                    try:
+                        logger.info(f"Checking email {i + 1} of {len(email_elements)}")
+                        
+                        # Verify the element is visible
+                        if not await email.is_visible():
+                            logger.debug(f"Email {i + 1} is not visible, skipping")
+                            continue
+                        
+                        # Get email ID and check for duplicates
+                        email_id = await email.evaluate("el => el.getAttribute('data-convid')")
+                        if email_id in processed_ids:
+                            logger.debug(f"Email {i + 1} already processed, skipping")
+                            continue
+                        
+                        # Get sender information
+                        sender_info = await email.evaluate("""
+                            el => {
+                                const senderSelectors = [
+                                    '[role=\"heading\"]',
+                                    'span[title]',
+                                    '[aria-label*="From"]',
+                                    '.ms-Persona-primaryText',
+                                    'span[class*="sender"]',
+                                    'div[class*="from"]'
+                                ];
+                                
+                                for (const selector of senderSelectors) {
+                                    const senderEl = el.querySelector(selector);
+                                    if (senderEl && senderEl.innerText.trim()) {
+                                        return senderEl.innerText.trim();
+                                    }
+                                }
+                                return '';
+                            }
+                        """)
+                        logger.info(f"Found sender info: {sender_info}")
+                        
+                        # Verify this is from the search person
+                        if not sender_info or search_person.lower() not in sender_info.lower():
+                            logger.debug(f"Email {i + 1} not from {search_person}, skipping")
+                            continue
+                        
+                        # Get subject to check for duplicates
+                        subject = await email.evaluate(f"""
+                            (el) => {{
+                                // Try header selectors first
+                                const headerSelectors = [
+                                    'div[class*="message-subject"]',
+                                    'div[class*="subject"]',
+                                    'span[class*="subject"]',
+                                    'div[role="link"] > span',
+                                    '[aria-label*="Subject"]'
+                                ];
+                                for (const selector of headerSelectors) {{
+                                    const subjectEl = el.querySelector(selector);
+                                    if (subjectEl) {{
+                                        const text = subjectEl.innerText || subjectEl.textContent || subjectEl.getAttribute('title') || subjectEl.getAttribute('aria-label');
+                                        if (text && text.trim()) {{
+                                            return text.trim();
+                                        }}
+                                    }}
+                                }}
+                                // Fallback: parse innerText lines
+                                const lines = (el.innerText || '').split('\\n').map(l => l.trim()).filter(Boolean);
+                                // Find sender and date line indices
+                                let senderIdx = -1, dateIdx = -1;
+                                for (let i = 0; i < lines.length; i++) {{
+                                    if (lines[i].toLowerCase().includes('{search_person.lower()}')) senderIdx = i;
+                                    // Heuristic: date line often contains a day and a number, e.g., "Fri 4/11"
+                                    if (/\\b(?:mon|tue|wed|thu|fri|sat|sun)\\b/i.test(lines[i]) && /\\d/.test(lines[i])) dateIdx = i;
+                                }}
+                                // If both found and at least one line between, return the line(s) between
+                                if (senderIdx !== -1 && dateIdx !== -1 && dateIdx > senderIdx + 1) {{
+                                    const subjectLines = lines.slice(senderIdx + 1, dateIdx);
+                                    return subjectLines.join(' ').trim();
+                                }}
+                                // Fallbacks: as before
+                                for (let i = 0; i < lines.length; i++) {{
+                                    if (/^(Re:|Fwd:)/i.test(lines[i])) {{
+                                        return lines[i];
+                                    }}
+                                }}
+                                if (lines.length >= 5) {{
+                                    return lines[4];
+                                }}
+                                return '';
+                            }}
+                        """)
+                        logger.info(f"Found subject: {subject}")
+                        
+                        # Diagnostic: If subject is empty, save innerHTML and innerText for first 3 emails
+                        if (not subject) and (i < 3):
+                            try:
+                                html = await email.evaluate("el => el.innerHTML")
+                                text = await email.evaluate("el => el.innerText")
+                                with open(f"email_element_{i+1}.html", "w", encoding="utf-8") as f_html:
+                                    f_html.write(html)
+                                with open(f"email_element_{i+1}.txt", "w", encoding="utf-8") as f_txt:
+                                    f_txt.write(text)
+                                logger.info(f"Saved diagnostic files for email {i+1}: email_element_{i+1}.html and email_element_{i+1}.txt")
+                            except Exception as diag_e:
+                                logger.error(f"Failed to save diagnostic files for email {i+1}: {diag_e}")
+                        
+                        if subject and subject not in processed_subjects:
+                            current_email = email
+                            processed_ids.add(email_id)
+                            processed_subjects.add(subject)
+                            logger.info(f"Found unprocessed email: {subject}")
+                            break
+                            
+                    except Exception as e:
+                        logger.error(f"Error checking email {i + 1}: {str(e)}")
+                        continue
+                
+                if not current_email:
+                    logger.error("No more unprocessed emails found from the search person")
+                    await page.screenshot(path="screenshots/no_more_emails.png")
+                    return "No more unprocessed emails found from the search person. Please check the search results and try again."
+                
+                # Process the found email
                 try:
+                    logger.info("Clicking on email to view content...")
+                    # Click and wait for content
+                    await current_email.click()
+                    await page.wait_for_timeout(3000)
+                    
+                    # Try multiple selectors for the email content
+                    content_selectors = [
+                        "div[role='document']",
+                        "div[class*='messageBody']",
+                        "div[class*='MessageBody']",
+                        "div[class*='mail-message-content']",
+                        "div[class*='message-content']"
+                    ]
+                    
+                    content = None
+                    for selector in content_selectors:
+                        try:
+                            logger.info(f"Trying content selector: {selector}")
+                            content_element = page.locator(selector)
+                            if await content_element.count() > 0:
+                                content = await content_element.inner_text()
+                                if content.strip():
+                                    logger.info("Found content using selector")
+                                    break
+                        except Exception as e:
+                            logger.debug(f"Selector {selector} failed: {str(e)}")
+                            continue
+                    
+                    if not content:
+                        logger.warning("Could not find email content")
+                        content = "No content available"
+                    
+                    # Clean and write the content
+                    cleaned_content = clean_email_content(content)
+                    with open("outlook_emails.txt", "a", encoding="utf-8") as f:
+                        f.write(f"=== EMAIL {emails_collected + 1} ===\n")
+                        f.write(f"Subject: {subject}\n")
+                        f.write(f"From: {sender_info}\n")
+                        f.write(cleaned_content)
+                        f.write("\n\n")
+                    
+                    emails_collected += 1
+                    logger.info(f"Successfully collected email {emails_collected}: {subject}")
+                    
+                    # Navigate back and wait for list to reload
+                    logger.info("Navigating back to email list...")
                     await page.go_back()
                     await page.wait_for_timeout(2000)
-                    # Verify we're back in the inbox
-                    await page.wait_for_selector("div[data-convid]", timeout=5000)
-                    break
+
+                    # After navigating back, check if the search filter is still present
+                    try:
+                        search_box = page.get_by_placeholder("Search")
+                        current_search_value = ""
+                        if await search_box.count() > 0:
+                            try:
+                                current_search_value = await search_box.input_value()
+                            except Exception as e:
+                                logger.debug(f"Could not get search box value: {str(e)}")
+                        search_should_be = f"from:{search_person}"
+                        if search_should_be.lower() not in current_search_value.lower():
+                            logger.info(f"Search filter lost (current value: '{current_search_value}'). Re-applying search filter...")
+                            await _search_in_outlook_impl(page, search_should_be, logger)
+                            await page.wait_for_timeout(5000)
+                            # Refresh email_elements after re-search
+                            email_elements = await page.locator("div[data-convid]").all()
+                        else:
+                            logger.info("Search filter still present after navigating back.")
+                    except Exception as e:
+                        logger.error(f"Error checking or re-applying search filter after navigating back: {str(e)}")
+                    
                 except Exception as e:
-                    if attempt == 2:  # Last attempt
-                        print(f"Warning: Could not return to inbox after {attempt+1} attempts")
-                        # Try direct navigation as last resort
-                        await page.goto("https://outlook.office.com/mail/inbox")
-                        await page.wait_for_timeout(3000)
-                    else:
-                        print(f"Retrying inbox navigation (attempt {attempt+1})")
-                        await page.wait_for_timeout(1000)
-            
-            print(f"Successfully processed email {i+1}")
+                    logger.error(f"Error processing email: {str(e)}")
+                    try:
+                        await page.go_back()
+                        await page.wait_for_timeout(2000)
+                    except:
+                        pass
+                    continue
+                
+            except Exception as e:
+                logger.error(f"Error in collection loop: {str(e)}")
+                # Try to recover by going back to the inbox
+                try:
+                    logger.info("Attempting to recover by going back to inbox...")
+                    await page.goto("https://outlook.office.com/mail/")
+                    await page.wait_for_timeout(5000)
+                except:
+                    pass
+                continue
         
-        print(f"\nCompleted processing 5 emails")
+        if emails_collected == 0:
+            logger.error("No emails were collected. Please check the search results and try again.")
+            return "No emails were collected. Please check the search results and try again."
         
-        # Log successful email collection
-        log_success("collect_emails", {
-            "total_emails_collected": 5,
-            "screenshots": ["email_1.png", "email_2.png", "email_3.png", "email_4.png", "email_5.png"]
-        })
-        
-        return "Email collection completed. Successfully collected 3 emails. Check outlook_emails.txt for the results."
+        summary = f"""
+=== Email Collection Summary ===
+Total emails collected: {emails_collected}
+Search person: {search_person}
+Processed subjects: {', '.join(processed_subjects)}
+Check email_extraction.log for detailed process information
+Check outlook_emails.txt for the collected email content
+"""
+        logger.info(summary)
+        return f"Successfully collected {emails_collected} emails from {search_person}. Check outlook_emails.txt for results."
         
     except Exception as e:
-        print(f"Failed to process emails: {str(e)}")
+        logger.error(f"Failed to process emails: {str(e)}")
         await page.screenshot(path="screenshots/collection_error.png")
         return f"Error collecting emails: {str(e)}"
 
@@ -790,11 +1053,11 @@ async def collect_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
 async def diagnose_search_and_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     global computer_instance
     page = computer_instance.page
-    
-    # Take a screenshot of the current state
+
+    # Take a screenshot of the current page
     await page.screenshot(path="screenshots/diagnose_search.png")
-    
-    # Get page information
+
+    # Gather basic page info
     page_info = await page.evaluate("""() => {
         const data = {
             url: window.location.href,
@@ -818,23 +1081,38 @@ async def diagnose_search_and_emails(ctx: RunContextWrapper[ExtractEmailContext]
                 total: document.querySelectorAll('.ZtMcN').length
             }
         };
-        
-        // Get the current search box value if any
+
+        // Get search box value
         const searchBox = document.querySelector('input[aria-label*="Search"]') || 
-                         document.querySelector('input[type="search"]') ||
-                         document.querySelector('input[placeholder*="Search"]');
+                          document.querySelector('input[type="search"]') ||
+                          document.querySelector('input[placeholder*="Search"]');
         if (searchBox) {
             data.currentSearchValue = searchBox.value;
         }
-        
+
         return data;
     }""")
-    
-    # Save diagnostic info
+
+    # Save high-level page info as JSON
     with open("search_diagnosis.json", "w") as f:
         import json
         json.dump(page_info, f, indent=2)
-    
+
+    # Capture innerHTML and innerText of the first email element
+    email_html = await page.evaluate("""() => {
+        const el = document.querySelector('div[data-convid]');
+        return el ? el.innerHTML : "No email element found";
+    }""")
+    with open("email_sample.html", "w") as f:
+        f.write(email_html)
+
+    email_text = await page.evaluate("""() => {
+        const el = document.querySelector('div[data-convid]');
+        return el ? el.innerText : "No email element found";
+    }""")
+    with open("email_sample.txt", "w") as f:
+        f.write(email_text)
+
     return f"""Diagnostic Results:
 1. Search Box Status:
    - Total input fields: {page_info['searchBoxes']['total']}
@@ -853,7 +1131,13 @@ async def diagnose_search_and_emails(ctx: RunContextWrapper[ExtractEmailContext]
    - Visible results: {page_info['searchResults']['visible']}
    - Total results: {page_info['searchResults']['total']}
 
-Screenshots and detailed JSON saved for further analysis."""
+4. Email Sample Files:
+   - Saved HTML: email_sample.html
+   - Saved Text: email_sample.txt
+
+5. Screenshot: screenshots/diagnose_search.png
+"""
+
 
 @function_tool(
     name_override="analyze_emails",
@@ -861,6 +1145,14 @@ Screenshots and detailed JSON saved for further analysis."""
 )
 async def analyze_emails(ctx: RunContextWrapper[ExtractEmailContext]) -> str:
     try:
+        # Check if we've already analyzed these emails
+        if os.path.exists("email_takeaways.txt"):
+            with open("email_takeaways.txt", "r", encoding="utf-8") as f:
+                existing_analysis = f.read()
+                if existing_analysis:
+                    logger.info("Email analysis already exists, skipping re-analysis")
+                    return "Email analysis already exists. Check email_takeaways.txt for results."
+        
         # Read the collected emails
         with open("outlook_emails.txt", "r", encoding="utf-8") as f:
             email_content = f.read()
@@ -922,10 +1214,12 @@ You are an email extraction agent that will help collect and analyze emails from
 Follow these steps in order:
 
 1. First, log into Outlook using the login_to_outlook function
-2. Then, find the search of the Outlook UI using the find_search_box function
+2. Then, find the search box of the Outlook UI using the find_search_box function
 3. Then, search for emails from Lynn Gadue using the search_in_outlook function
-4. Next, collect the content of the emails using the collect_emails function, specifying how many emails to collect. it will possibly be necessary to clck on each email in order to see and extract its content.
-5. Note that might also be necessary to re sort or re search the inbox once you've clicked on a particular email and want to collect content from the next email. we only want to be collect content of emails from the specific sender designated for this run of the agent.
+4. Next, collect the content of the emails using the collect_emails function. The number of emails to collect is specified in the context (n_emails).
+   - Note: You may need to scroll down the sorted list to ensure enough emails are visible. but don't scroll more than 5 times for purposse of this testing
+   - It may be necessary to click on each email to see and extract its contents. you can determine this by looking at the page to see if there are still emails below
+5. Note that it might be necessary to re-sort or re-search the inbox once you've clicked on a particular email and want to collect content from the next email. We only want to collect content of emails from the specific sender designated for this run of the agent.
 6. Finally, analyze the collected emails using the analyze_emails function to generate a summary of key points and open questions
 
 After each step, verify that it completed successfully before moving to the next step.
@@ -953,7 +1247,11 @@ email_agent = Agent[ExtractEmailContext](
         save_page_html,
         analyze_emails
     ],
-    model_settings=ModelSettings(tool_choice="required"),
+    model_settings=ModelSettings(
+        tool_choice="required",
+        temperature=0.7,
+        max_tokens=2000
+    ),
 )
 # =============================================================================
 # MAIN RUNNER
@@ -961,33 +1259,46 @@ email_agent = Agent[ExtractEmailContext](
 
 async def main():
     global computer_instance
-    enable_verbose_stdout_logging()
     
-    # Initialize OpenAI client
-    from openai import AsyncOpenAI
-    openai_client = AsyncOpenAI()
+    # Initialize the detailed logger first
+    logger = DetailedTraceLogger()
     
-    async with OutlookPlaywrightComputer() as computer:
-        computer_instance = computer
+    try:
+        # Then enable verbose stdout logging
+        #enable_verbose_stdout_logging()
         
-        # Provide an initial input to start the process.
-        input_items: list[TResponseInputItem] = [{"role": "user", "content": "start email extraction"}]
-        context = ExtractEmailContext(n_emails=5, openai_client=openai_client)  # Add OpenAI client to context
-
-        # Ensure "screenshots" directory exists
-        os.makedirs("screenshots", exist_ok=True)
+        # Initialize OpenAI client
+        from openai import AsyncOpenAI
+        openai_client = AsyncOpenAI()
         
-        with trace("Outlook Email Extraction Agent"):
-            result = await Runner.run(email_agent, input_items, context=context, max_turns=30)
+        async with OutlookPlaywrightComputer() as computer:
+            computer_instance = computer
             
-            for new_item in result.new_items:
-                agent_name = new_item.agent.name
-                if isinstance(new_item, MessageOutputItem):
-                    print(f"{agent_name}: {new_item.content}")
-                else:
-                    print(f"{agent_name}: Received item of type {new_item.__class__.__name__}")
-        
-        print("Email extraction task complete.")
+            # Provide an initial input to start the process.
+            input_items: list[TResponseInputItem] = [{"role": "user", "content": "start email extraction"}]
+            context = ExtractEmailContext(n_emails=5, openai_client=openai_client)
+            
+            # Ensure "screenshots" directory exists
+            os.makedirs("screenshots", exist_ok=True)
+            
+            with trace("Outlook Email Extraction Agent"):
+                result = await Runner.run(email_agent, input_items, context=context, max_turns=30)
+                
+                for new_item in result.new_items:
+                    agent_name = new_item.agent.name
+                    if isinstance(new_item, MessageOutputItem):
+                        print(f"{agent_name}: {new_item.content}")
+                    else:
+                        print(f"{agent_name}: Received item of type {new_item.__class__.__name__}")
+            
+            print("Email extraction task complete.")
+    except Exception as e:
+        print(f"Error during execution: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Restore original streams before exiting
+        logger.restore_streams()
 
 
 
