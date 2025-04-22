@@ -282,23 +282,145 @@ Screenshot saved to screenshots/page_examination.png
         await page.screenshot(path="screenshots/examination_error.png")
         return f"Error examining page: {str(e)}"
 
-# Agent instructions
+@function_tool(
+    name_override="scroll_and_capture",
+    description_override="Scroll through the page and capture all visible text content."
+)
+async def scroll_and_capture(ctx: RunContextWrapper[GenericPageContext]) -> str:
+    """Scroll through the page and capture all visible content"""
+    global computer_instance
+    page = computer_instance.page
+    
+    try:
+        # Initialize content storage
+        all_content = []
+        scroll_count = 0
+        last_content_length = 0
+        no_new_content_count = 0
+        
+        # Take initial screenshot for reference
+        await page.screenshot(path="screenshots/before_scroll.png")
+        
+        while True:
+            scroll_count += 1
+            
+            # Get current visible text content
+            current_content = await page.evaluate("""() => {
+                // Get all text nodes that are currently visible
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    {
+                        acceptNode: function(node) {
+                            // Check if the node's content is not just whitespace
+                            if (!node.textContent.trim()) {
+                                return NodeFilter.FILTER_REJECT;
+                            }
+                            
+                            // Get the element containing this text node
+                            const element = node.parentElement;
+                            
+                            // Check if the element is visible
+                            const style = window.getComputedStyle(element);
+                            if (style.display === 'none' || style.visibility === 'hidden') {
+                                return NodeFilter.FILTER_REJECT;
+                            }
+                            
+                            // Check if the element is in the viewport
+                            const rect = element.getBoundingClientRect();
+                            if (rect.top < 0 || rect.bottom > window.innerHeight) {
+                                return NodeFilter.FILTER_REJECT;
+                            }
+                            
+                            return NodeFilter.FILTER_ACCEPT;
+                        }
+                    }
+                );
+
+                const visibleText = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    visibleText.push(node.textContent.trim());
+                }
+                
+                return visibleText.join('\\n');
+            }""")
+            
+            # Add new content to our collection
+            if current_content.strip():
+                all_content.append(current_content)
+            
+            # Scroll down
+            scroll_result = await page.evaluate("""() => {
+                const previousHeight = window.scrollY;
+                window.scrollBy(0, window.innerHeight);
+                return {
+                    previousHeight,
+                    currentHeight: window.scrollY,
+                    maxHeight: document.documentElement.scrollHeight
+                };
+            }""")
+            
+            # Wait for any dynamic content to load
+            await page.wait_for_timeout(1000)
+            
+            # Check if we've reached the bottom or if content isn't changing
+            current_total_length = sum(len(c) for c in all_content)
+            if current_total_length == last_content_length:
+                no_new_content_count += 1
+            else:
+                no_new_content_count = 0
+                last_content_length = current_total_length
+            
+            # Stop conditions:
+            # 1. We've scrolled to the bottom
+            # 2. No new content in last 3 scrolls
+            # 3. We've scrolled too many times (safety limit)
+            if (scroll_result['currentHeight'] == scroll_result['previousHeight'] or
+                no_new_content_count >= 3 or
+                scroll_count >= 50):
+                break
+        
+        # Take final screenshot for reference
+        await page.screenshot(path="screenshots/after_scroll.png")
+        
+        # Save all captured content to a file
+        unique_content = list(dict.fromkeys(all_content))  # Remove duplicates while preserving order
+        with open("page_contents.txt", "w", encoding="utf-8") as f:
+            f.write("\n\n=== PAGE SECTION ===\n\n".join(unique_content))
+        
+        return f"""Scroll and capture complete:
+- Performed {scroll_count} scroll operations
+- Captured {len(unique_content)} unique content sections
+- Content saved to page_contents.txt
+- Before/after screenshots saved to screenshots/"""
+        
+    except Exception as e:
+        logger.error(f"Error during scroll and capture: {str(e)}")
+        await page.screenshot(path="screenshots/scroll_error.png")
+        return f"Error during scroll and capture: {str(e)}"
+
+# Update agent instructions
 INSTRUCTIONS = f"""{RECOMMENDED_PROMPT_PREFIX}
 You are a generic page management agent. Your task is to:
 1. Examine the current page and understand its structure
-2. Identify available actions and interactive elements
-3. Provide a clear summary of what can be done on this page
+2. Scroll through the entire page, capturing all visible content
+3. Save the content and take screenshots at each scroll position
 
-After completing these steps, your task is done.
 
-Note: The page examination will be saved to page_examination.json and a screenshot will be taken."""
+The examination results will be saved to page_examination.json
+The page content will be saved to page_contents.txt
+Screenshots will be saved to the screenshots directory.
 
-# Agent definition
+After completing these steps, your task is done."""
+
+# Update agent definition to include new tool
 page_agent = Agent[GenericPageContext](
     name="Generic Page Management Agent",
     instructions=INSTRUCTIONS,
     tools=[
-        examine_page
+        examine_page,
+        scroll_and_capture
     ],
     model="gpt-4",
     model_settings=ModelSettings(
